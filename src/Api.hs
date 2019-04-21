@@ -1,10 +1,13 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Api where
 
 import Data.Aeson
+-- import Data.Attoparsec.ByteString
+import Data.ByteString (ByteString)
 import Data.Text
 import Data.Time (UTCTime)
 import GHC.Generics
@@ -12,6 +15,7 @@ import Servant
 import Servant.API
 import Network.Wai
 import Network.Wai.Handler.Warp
+import Data.List as List
 
 type UserAPI = "users" :> Get '[JSON] [User]
           :<|> "users" :> Capture "userid" Int :> Get '[JSON] User
@@ -31,12 +35,19 @@ users =
   , User "Albert Einstein" 136 "ae@mc2.org"
   ]
 
-getById :: Int -> User
-getById index = users !! index
+getUsers :: Handler [User]
+getUsers = return users
+
+getById :: Int -> Handler User
+getById index = 
+  if index >= 0 && List.length users > index
+     then return (users !! index)
+     else throwError err404 { errBody = "Invalid user id" }
+
 
 server1 :: Server UserAPI
-server1 = return users
-     :<|> \index -> return (getById index)
+server1 = getUsers
+     :<|> getById
 
 userAPI :: Proxy UserAPI
 userAPI = Proxy
