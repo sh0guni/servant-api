@@ -17,6 +17,8 @@ import Network.Wai
 import Network.Wai.Handler.Warp
 import Data.List as List
 
+import Util (lookUpEnvWithDefault)
+
 type UserAPI = "users" :> Get '[JSON] [User]
           :<|> "users" :> Capture "userid" Int :> Get '[JSON] User
 
@@ -56,4 +58,7 @@ app1 :: Application
 app1 = serve userAPI server1
 
 start :: IO ()
-start = run 3000 app1
+start = do
+  port <- lookUpEnvWithDefault "PORT" 3000
+  putStrLn $ "Server listening on port " ++ show port
+  run port app1
