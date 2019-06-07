@@ -27,6 +27,7 @@ dependencies:
 - time
 - servant
 - servant-server
+- split
 - wai
 - warp
 

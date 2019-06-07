@@ -6,9 +6,7 @@
 module Api where
 
 import Data.Aeson
--- import Data.Attoparsec.ByteString
 import Data.ByteString (ByteString)
-import Data.Text
 import Data.Time (UTCTime)
 import GHC.Generics
 import Servant
@@ -16,6 +14,8 @@ import Servant.API
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Data.List as List
+import Data.List.Split (splitOn)
+import Control.Monad.IO.Class (liftIO)
 
 import Util (lookUpEnvWithDefault)
 
@@ -23,6 +23,12 @@ type UserAPI = "users" :> Get '[JSON] [User]
           :<|> "users" :> Capture "userid" Int :> Get '[JSON] User
 
 -- data SortBy = Age | Name
+
+newtype FileContent = FileContent
+  { content :: String }
+  deriving Generic
+
+instance ToJSON FileContent
 
 data User = User {
     name :: String,
@@ -32,20 +38,20 @@ data User = User {
 
 instance ToJSON User
 
-users =
-  [ User "Isaac Newton"    372 "isaac@newton.co.uk"
-  , User "Albert Einstein" 136 "ae@mc2.org"
-  ]
+listToUser :: [String] -> User
+listToUser (name:age:email:_) = User name (read age) email
 
 getUsers :: Handler [User]
-getUsers = return users
+getUsers = do
+  contents <- liftIO (readFile "users.txt")
+  return $ map (listToUser . splitOn ",") $ lines contents
 
 getById :: Int -> Handler User
-getById index = 
+getById index = do
+  users <- getUsers
   if index >= 0 && List.length users > index
      then return (users !! index)
      else throwError err404 { errBody = "Invalid user id" }
-
 
 server1 :: Server UserAPI
 server1 = getUsers
